@@ -1,103 +1,99 @@
-# FluidSynth
 
-| | Build Status |
-|---|---|
-| <img src="https://www.kernel.org/theme/images/logos/tux.png" height="30" alt=""> **Linux** (CI) | [![FluidSynth Linux](https://github.com/FluidSynth/fluidsynth/actions/workflows/linux.yml/badge.svg?branch=master)](https://github.com/FluidSynth/fluidsynth/actions/workflows/linux.yml) |
-| <img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Obs-logo.png" height=30 alt=""> **Linux** (Packaging) | [![build result](https://build.opensuse.org/projects/home:derselbst:anmp/packages/fluidsynth/badge.svg?type=default)](https://build.opensuse.org/package/show/home:derselbst:anmp/fluidsynth)
-| <img src="https://raw.githubusercontent.com/docker-library/docs/781049d54b1bd9b26d7e8ad384a92f7e0dcb0894/alpine/logo.png" height="25" alt=""> **Alpine** (musl) | [![Fluidsynth Alpine](https://dev.azure.com/tommbrt/tommbrt/_apis/build/status%2FFluidSynth.fluidsynth.alpine?branchName=master)](https://dev.azure.com/tommbrt/tommbrt/_build/latest?definitionId=12&branchName=master) |
-| <img src="https://www.freebsd.org/gifs/daemon_hammer.jpg" height="30" alt=""> **FreeBSD** | [![FluidSynth FreeBSD](https://github.com/FluidSynth/fluidsynth/actions/workflows/freebsd.yml/badge.svg?branch=master)](https://github.com/FluidSynth/fluidsynth/actions/workflows/freebsd.yml) |
-| <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Windows_Logo_%281992-2001%29.svg/960px-Windows_Logo_%281992-2001%29.svg.png" height="25" alt=""> **Windows 10** | [![Fluidsynth Windows](https://github.com/FluidSynth/fluidsynth/actions/workflows/windows.yml/badge.svg?branch=master)](https://github.com/FluidSynth/fluidsynth/actions/workflows/windows.yml) |
-| <img src="https://www.apple.com/favicon.ico" height="30" alt=""> **MacOSX** | [![Build Status](https://dev.azure.com/tommbrt/tommbrt/_apis/build/status/FluidSynth.fluidsynth.macOS?branchName=master)](https://dev.azure.com/tommbrt/tommbrt/_build/latest?definitionId=5&branchName=master) |
-| <img src="https://www.android.com/favicon.ico" height="30" alt=""> **Android** | [![Build Status](https://dev.azure.com/tommbrt/tommbrt/_apis/build/status/FluidSynth.fluidsynth.Android?branchName=master)](https://dev.azure.com/tommbrt/tommbrt/_build/latest?definitionId=4&branchName=master) |
-| <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/IOS_logo.svg/60px-IOS_logo.svg.png" height="30" alt=""> **iOS** | [![FluidSynth iOS](https://github.com/FluidSynth/fluidsynth/actions/workflows/ios.yml/badge.svg?branch=master)](https://github.com/FluidSynth/fluidsynth/actions/workflows/ios.yml) |
-| <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Solaris_OS_logo.svg/60px-Solaris_OS_logo.svg.png" height="30" alt=""> **Solaris** | [![FluidSynth Solaris](https://github.com/FluidSynth/fluidsynth/actions/workflows/solaris.yml/badge.svg?branch=master)](https://github.com/FluidSynth/fluidsynth/actions/workflows/solaris.yml) |
-| <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Os2logo.svg/60px-Os2logo.svg.png" height="30" alt=""> **OS/2** | [![FluidSynth OS/2](https://github.com/FluidSynth/fluidsynth/actions/workflows/os2.yml/badge.svg?branch=master)](https://github.com/FluidSynth/fluidsynth/actions/workflows/os2.yml) |
+# FluidSynth with Emscripten-specific patch
 
-#### FluidSynth is a cross-platform, real-time software synthesizer based on the Soundfont 2 specification.
+This repository is based on [FluidSynth](https://github.com/FluidSynth/fluidsynth) repository, and contains some changes to build with Emscripten.
 
-FluidSynth generates audio by reading and handling MIDI events from MIDI input devices by using a [SoundFont](https://www.fluidsynth.org/wiki/SoundFont). It is the software analogue of a MIDI synthesizer. FluidSynth can also play MIDI files.
+The original README is here: [README.original.md](./README.original.md)
 
-[![SonarQube Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=FluidSynth_fluidsynth&metric=alert_status)](https://sonarcloud.io/dashboard?id=FluidSynth_fluidsynth) [![OHLOH Project Stats](https://www.openhub.net/p/fluidsynth/widgets/project_thin_badge?format=gif)](https://www.openhub.net/p/fluidsynth)
+## Build (enikey87)
 
+Prerequisites (Debian/Ubuntu): `git python3 wget xz-utils cmake make pkg-config autoconf automake libtool`.
 
-## Documentation
+```shell
+./build_libsndfile.sh   # libsndfile + ogg/vorbis/flac/opus into ../libsndfile-emscripten; build.sh needs it for the sf3 variants
+./build.sh              # every libfluidsynth-X.X.X*.js / .wasm variant into ./dist
+```
 
-The central place for documentation and further links is our **wiki** here at GitHub:
+Both scripts source `emsdk-env.sh`, which installs Emscripten `3.1.10` (override with `EMSDK_VERSION`) into `../emsdk` unless `emcmake` is already on `PATH`. An `emcmake` you provide yourself must run with node < 18: 3.1.10 output calls the global `fetch` node 18+ ships, and autoconf's run test fails with `cannot run C compiled programs`.
 
-#### https://www.fluidsynth.org/wiki
+## Install
 
-If you are missing parts of the documentation, let us know by writing to our mailing list.
-Of course, you are welcome to edit and improve the wiki yourself. All you need is an account at GitHub. Alternatively, you may send an EMail to our mailing list along with your suggested changes. Further information about the mailing list is available in the wiki as well.
+```shell
+npm install @songsterr/fluidsynth-emscripten   # @songsterr scope resolves to npm.terra.songsterr.com
+```
 
-Latest information about FluidSynth is also available on the web site at https://www.fluidsynth.org/.
+## CI
+
+Builderr (`.builderr.yml`) runs on every push: fluidsynth's own `make check` natively, and the full wasm build with `dist/` attached as artifacts, then `test/wasm/smoke.mjs` loads every variant the way consumers do (exports, sf2/sf3 loading, rendering, callbacks, the MIDI player). A push to `main` also publishes that CI-built `dist/` as `@songsterr/fluidsynth-emscripten` to `npm.terra.songsterr.com`, unless `package.json`'s version is already there — bump `version` to release.
+
+## Build with Docker (enikey87)
+
+A single command builds every variant into `./dist`:
+
+```shell
+docker compose run --rm --build --user "$(id -u):$(id -g)" builder
+```
+
+`--user` keeps the artifacts owned by you rather than by root. The image carries a
+prebuilt libsndfile (needed for sf3), so a rebuild only recompiles fluidsynth.
+
+## Build (from jet2jet)
+
+> Tested with Emscripten version 3.1.10.
+
+1. (Optional) Update `emscripten/exports.txt`, containing export functions for JS program
+    * The script `emscripten/make-exports.js` will update this automatically, gathering functions from `include` directory.
+2. Make sure that Emscripten is usable on the current environment
+3. Make `build` directory
+4. Enter `build` directory and execute `emcmake cmake -Denable-oss=off -DCMAKE_BUILD_TYPE=Release ..`
+    * If no other options are specified, and `cmake` is running with `emcmake` (or `emconfigure`), the build configurations are initialized for Emscripten-build mode.
+5. In `build` directory, execute `emmake make`
+
+After successful build, `libfluidsynth-<version>.js` will be created at `build/src` directory.
+
+* If `enable-debug` specified on the `cmake` execution (e.g. `emcmake cmake -Denable-debug=on ..`), a map file `libfluidsynth-<version>.wasm.map` is also generated.
+    * Currently it seems that it cannot be used.
+* If `enable-separate-wasm` specified on the `cmake` execution (e.g. `emcmake cmake -Denable-separate-wasm=on ..`), `libfluidsynth-<version>.wasm` and `libfluidsynth-<version>.wast` are also generated.
+    * For AudioWorklet, you cannot use `*.wasm` file directly.
+* In Emscripten-build mode, standalone application named `fluidsynth` is not emitted.
+
+## Build static library for Emscripten
+
+Please specify `-D BUILD_SHARED_LIBS=off` on calling emcmake. (e.g. `emcmake cmake -D BUILD_SHARED_LIBS=off ..`)
+
+In this mode, you can also build sources under `doc` directory (e.g. `cd build/doc && make fluidsynth_simple -j16`), although all exportable functions will be exported.
+
+## Usage
+
+Place `libfluidsynth-<version>.js` file to your space and load `libfluidsynth-<version>.js`. After load, almost all FluidSynth API functions are accessible via `Module` object (note that all function names have the prefix `_`).
+
+To use `libfluidsynth-<version>.js` in AudioWorklet, load it into AudioWorklet before your worklet JS file. In your worklet JS file, you can access `Module` object via `AudioWorkletGlobalScope.wasmModule`.
+
+## Miscellaneous
+
+### Per-track audio groups (opt-in)
+
+Set `synth.per-track-audio` to `1` before creating the synth, and set
+`synth.audio-channels`, `synth.audio-groups`, and `synth.effects-groups` to the SMF
+track count. The setting defaults to `0`: existing stereo playback is unchanged.
+Check that setting the option succeeds before using this mode with a WASM build.
+
+This mode assumes the channel layout this fork's SMF loader produces: each track
+uses melodic channels 0–8 and drum channel 9, and is remapped onto ten private
+MIDI channels, so at most 25 tracks fit into the default 256 MIDI channels. Each
+track keeps its own drum channel across reset and seek. Channel controllers,
+program changes, and pitch bends remain within that track. Audio and
+reverb/chorus are routed to the same track group. Always set `synth.effects-groups`
+equal to `synth.audio-groups`: it defaults to 1, and then the reverb/chorus of
+every track is mixed into group 0 while the other groups play dry — silently,
+with no error.
+Render all groups with `fluid_synth_process`; fewer output groups intentionally
+wrap/mix according to the normal FluidSynth group semantics. As before, callers
+must zero output buffers before rendering. General SMF channel layouts and
+device-specific SysEx channel reassignment are not supported by this mode.
+
+* Currently only several APIs are tested. Some APIs such as for drivers may not work.
 
 ## License
 
-The source code for FluidSynth is distributed under the terms of the [GNU Lesser General Public License](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html), see the [LICENSE](https://github.com/FluidSynth/fluidsynth/blob/master/LICENSE) file. To better understand the conditions how FluidSynth can be used in e.g. commercial or closed-source projects, please refer to the [LicensingFAQ in our wiki](https://www.fluidsynth.org/wiki/LicensingFAQ).
-
-## Building from source
-
-For information on how to build FluidSynth from source, please [refer to our wiki](https://www.fluidsynth.org/wiki/BuildingWithCMake).
-
-## Links
-
-- FluidSynth's Home Page, https://www.fluidsynth.org
-
-- FluidSynth's wiki, https://www.fluidsynth.org/wiki
-
-- FluidSynth's API documentation, https://www.fluidsynth.org/wiki/api/
-
----
-
-## Historical background
-
-### Why did we do it
-
-The synthesizer grew out of a project, started by Samuel Bianchini and
-Peter Hanappe, and later joined by Johnathan Lee, that aimed at
-developing a networked multi-user game.
-
-Sound (and music) was considered a very important part of the game. In
-addition, users had to be able to extend the game with their own
-sounds and images. Johnathan Lee proposed to use the Soundfont
-standard combined with intelligent use of midifiles. The arguments
-were:
-
-- Wavetable synthesis is low on CPU usage, it is intuitive and it can
-  produce rich sounds
-
-- Hardware acceleration is possible if the user owns a Soundfont
-  compatible soundcard (important for games!)
-
-- MIDI files are small and Soundfont2 files can be made small thru the
-  intelligent use of loops and wavetables. Together, they are easier to
-  downloaded than MP3 or audio files.
-
-- Graphical editors are available for both file format: various
-  Soundfont editors are available on PC and on Linux (Smurf!), and
-  MIDI sequencers are available on all platforms.
-
-It seemed like a good combination to use for an (online) game. 
-
-In order to make Soundfonts available on all platforms (Linux, Mac,
-and Windows) and for all sound cards, we needed a software Soundfont
-synthesizer. That is why we developed FluidSynth.
-
-### Design decisions
-
-The synthesizer was designed to be as self-contained as possible for
-several reasons:
-
-- It had to be multi-platform (Linux, macOS, Win32). It was therefore
-  important that the code didn't rely on any platform-specific
-  library.
-
-- It had to be easy to integrate the synthesizer modules in various
-  environments, as a plugin or as a dynamically loadable object. I
-  wanted to make the synthesizer available as a plugin (jMax, LADSPA,
-  Xmms, WinAmp, Director, ...); develop language bindings (Python,
-  Java, Perl, ...); and integrate it into (game) frameworks (Crystal
-  Space, SDL, ...). For these reasons I've decided it would be easiest
-  if the project stayed very focused on its goal (a Soundfont
-  synthesizer), stayed small (ideally one file) and didn't dependent
-  on external code.
+This program and all source codes, including the original FluidSynth program, its source codes, modifications of FluidSynth source codes for building library with Emscripten, and sources codes used only for building `libfluidsynth-<version>.js`, are licensed under [GNU Lesser General Public License (v2.1)](./LICENSE) (LGPL v2.1).

@@ -1,15 +1,6 @@
 services:
-  fluidsynth:
-    image: fluidsynth-devel
-    build:
-      context: .
-    working_dir: /fluidsynth
-    user: "1000:490"
-    cap_add:
-    - SYS_PTRACE
-    devices:
-      - /dev/snd:/dev/snd
+  builder:
+    build: .
     volumes:
-      - .:/fluidsynth
-      - $HOME:/home:ro
-      - /usr:/host/usr
+      - .:/code
+    command: ./build.sh
