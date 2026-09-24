@@ -34,7 +34,7 @@ workflows:
 
       publish:
         when:
-          branch: master
+          branch: main
         # Not node:*: a Vault secret keyed on that image name overrides NPM_TOKEN with a stale value.
         image: hub-eu.terra.songsterr.com/builderr-npm-24-slim
         commands:
