@@ -364,6 +364,13 @@ endif ( MACOSX_FRAMEWORK )
 # static library instead, set the option BUILD_SHARED_LIBS to FALSE.
 # Further note: The headers must be explicitly added here to have CMake install
 # them correctly in case of MACOSX_FRAMEWORK
+if ( EMSCRIPTEN_SUPPORT AND BUILD_SHARED_LIBS )
+  # Emscripten emits the JS module from an executable target.
+  add_executable ( libfluidsynth
+    $<TARGET_OBJECTS:libfluidsynth-OBJ>
+    $<$<BOOL:${SIGNALSMITH_SUPPORT}>:$<TARGET_OBJECTS:fluid_limiter_impl-OBJ>>
+  )
+else ()
 add_library ( libfluidsynth
     $<TARGET_OBJECTS:libfluidsynth-OBJ>
     $<$<BOOL:${SIGNALSMITH_SUPPORT}>:$<TARGET_OBJECTS:fluid_limiter_impl-OBJ>>
@@ -371,6 +378,7 @@ add_library ( libfluidsynth
     ${public_HEADERS}
     ${MACOSX_FRAMEWORK_SOURCE_HACK}
 )
+endif ()
 
 if ( MACOSX_FRAMEWORK )
     set_source_files_properties ( ${public_HEADERS}
@@ -407,6 +415,15 @@ elseif ( WIN32 )
       ARCHIVE_OUTPUT_NAME "fluidsynth-${LIB_VERSION_CURRENT}"
       VERSION ${LIB_VERSION_INFO}
       SOVERSION ${LIB_VERSION_CURRENT}
+    )
+elseif ( EMSCRIPTEN_SUPPORT AND BUILD_SHARED_LIBS )
+  set_target_properties ( libfluidsynth
+    PROPERTIES
+      NO_SONAME TRUE
+      PUBLIC_HEADER "${public_HEADERS}"
+      PREFIX "lib"
+      OUTPUT_NAME "fluidsynth"
+      SUFFIX "-${VERSION}.js"
     )
 elseif ( CYGWIN )
   set_target_properties ( libfluidsynth
@@ -447,6 +464,12 @@ endif()
 
 if ( TARGET SndFile::sndfile AND LIBSNDFILE_SUPPORT )
     target_link_libraries ( libfluidsynth-OBJ PUBLIC SndFile::sndfile )
+    if ( EMSCRIPTEN_SUPPORT )
+        # Static libsndfile-emscripten: link its codec dependencies too (sndfile.pc omits opus).
+        pkg_check_modules ( SNDFILE_PC QUIET sndfile )
+        target_link_libraries ( libfluidsynth-OBJ PUBLIC ${SNDFILE_PC_STATIC_LIBRARIES} opus )
+        target_link_directories ( libfluidsynth-OBJ PUBLIC ${SNDFILE_PC_STATIC_LIBRARY_DIRS} )
+    endif ( EMSCRIPTEN_SUPPORT )
 endif()
 
 if ( PULSE_SUPPORT )
@@ -521,6 +544,7 @@ install( TARGETS libfluidsynth-OBJ
 # Here are applied/linked the OBJECT library dependencies
 target_link_libraries ( libfluidsynth PRIVATE libfluidsynth-OBJ )
 
+if ( NOT EMSCRIPTEN_SUPPORT )
 # ************ CLI program ************
 
 set ( fluidsynth_SOURCES fluidsynth.c )
@@ -643,3 +667,4 @@ install(EXPORT FluidSynthTargets
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/fluidsynth
         COMPONENT ${PACKAGE}_development
 )
+endif ( NOT EMSCRIPTEN_SUPPORT )

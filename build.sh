@@ -32,11 +32,11 @@ compile_libfluidsynth() {
   emmake make -C build
 
   # Replace the hardcoded .wasm filename with the variant
-  sed -i "s/libfluidsynth-2.3.0.wasm/libfluidsynth-2.3.0${suffix}.wasm/g" build/src/libfluidsynth-2.3.0.js
+  sed -i "s/libfluidsynth-2.6.1.wasm/libfluidsynth-2.6.1${suffix}.wasm/g" build/src/libfluidsynth-2.6.1.js
 
   # Move the artifacts to the dist folder with the specified suffix
-  cp build/src/libfluidsynth-2.3.0.js "dist/libfluidsynth-2.3.0${suffix}.js"
-  [ -f build/src/libfluidsynth-2.3.0.wasm ] && cp build/src/libfluidsynth-2.3.0.wasm "dist/libfluidsynth-2.3.0${suffix}.wasm"
+  cp build/src/libfluidsynth-2.6.1.js "dist/libfluidsynth-2.6.1${suffix}.js"
+  [ -f build/src/libfluidsynth-2.6.1.wasm ] && cp build/src/libfluidsynth-2.6.1.wasm "dist/libfluidsynth-2.6.1${suffix}.wasm"
   echo "*** BUILD VARIANT FOR SUFFIX '${suffix}' COMPLETE *** "
 }
 

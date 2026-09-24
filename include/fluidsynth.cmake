@@ -45,6 +45,14 @@ extern "C" {
 #elif defined(__OS2__)
 #define FLUIDSYNTH_API __declspec(dllexport)
 
+#elif defined(__EMSCRIPTEN__)
+#if defined(FLUIDSYNTH_DLL_EXPORTS)
+#include <emscripten.h>
+#define FLUIDSYNTH_API EMSCRIPTEN_KEEPALIVE
+#else
+#define FLUIDSYNTH_API
+#endif
+
 #elif defined(__GNUC__)
 #define FLUIDSYNTH_API __attribute__ ((visibility ("default")))
 

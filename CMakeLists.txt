@@ -40,6 +40,9 @@ endif()
 
 project ( FluidSynth C CXX )
 list( APPEND CMAKE_MODULE_PATH ${FluidSynth_SOURCE_DIR}/cmake_admin )
+if ( CMAKE_SYSTEM_NAME MATCHES "Emscripten" )
+    list (APPEND CMAKE_MODULE_PATH "${EMSCRIPTEN_ROOT_PATH}/cmake/Modules" )
+endif ( CMAKE_SYSTEM_NAME MATCHES "Emscripten" )
 
 # FluidSynth package name
 set ( PACKAGE "fluidsynth" )
@@ -125,11 +128,26 @@ if ( CMAKE_SYSTEM MATCHES "OS2" )
     set ( enable-ipv6 off )
 endif ( CMAKE_SYSTEM MATCHES "OS2" )
 
+unset ( EMSCRIPTEN_SUPPORT CACHE )
+if ( CMAKE_SYSTEM_NAME MATCHES "Emscripten" )
+    option ( enable-separate-wasm "generate separate .wasm file" off )
+    set ( EMSCRIPTEN_SUPPORT on )
+    set ( osal "embedded" )
+    foreach ( opt enable-alsa enable-dbus enable-ipv6 enable-jack enable-native-dls enable-network
+                  enable-openmp enable-oss enable-pipewire enable-portaudio enable-pulseaudio
+                  enable-readline enable-sdl3 enable-threads )
+        set ( ${opt} off )
+    endforeach ()
+endif ( CMAKE_SYSTEM_NAME MATCHES "Emscripten" )
+
 # the default C standard to use for all targets
 set(CMAKE_C_STANDARD 90)
 
 # the default C++ standard to use for all targets
 set(CMAKE_CXX_STANDARD 11)
+if ( EMSCRIPTEN_SUPPORT )
+  set(CMAKE_CXX_STANDARD 17) # fluid_audio_convert.h uses std::clamp
+endif ( EMSCRIPTEN_SUPPORT )
 
 # whether to use gnu extensions
 set(CMAKE_C_EXTENSIONS ON)
@@ -223,7 +241,11 @@ if ( CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang" OR CMAKE_C_C
   set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -W -Wpointer-arith -Wcast-qual -Wno-unused-parameter" )
 
   # prepend to build type specific flags, to allow users to override
-  set ( CMAKE_C_FLAGS_DEBUG "-g ${CMAKE_C_FLAGS_DEBUG}" )
+  if ( EMSCRIPTEN_SUPPORT )
+    set ( CMAKE_C_FLAGS_DEBUG "-g4 ${CMAKE_C_FLAGS_DEBUG}" )
+  else ( EMSCRIPTEN_SUPPORT )
+    set ( CMAKE_C_FLAGS_DEBUG "-g ${CMAKE_C_FLAGS_DEBUG}" )
+  endif ( EMSCRIPTEN_SUPPORT )
 
   if ( CMAKE_C_COMPILER_ID STREQUAL "Intel" )
     # icc needs the restrict flag to recognize C99 restrict pointers
@@ -894,9 +916,26 @@ else ()
 endif ()
 
 # Process subdirectories
+if ( EMSCRIPTEN_SUPPORT )
+    FILE( STRINGS "emscripten/exports.txt" EMSCRIPTEN_EXPORTS_OPTIONS NEWLINE_CONSUME )
+    STRING ( REPLACE "\n" "" EMSCRIPTEN_EXPORTS_OPTIONS "${EMSCRIPTEN_EXPORTS_OPTIONS}" )
+    if ( NOT BUILD_SHARED_LIBS )
+      SET( EMSCRIPTEN_EXPORTS_OPTIONS "${EMSCRIPTEN_EXPORTS_OPTIONS}\"_main\"," )
+    endif ( NOT BUILD_SHARED_LIBS )
+    STRING ( REGEX REPLACE ",$" "" EMSCRIPTEN_EXPORTS_OPTIONS "${EMSCRIPTEN_EXPORTS_OPTIONS}" )
+    SET( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DFLUIDSYNTH_DLL_EXPORTS" )
+    if ( NOT enable-separate-wasm )
+        SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s SINGLE_FILE=1" )
+    endif ( NOT enable-separate-wasm )
+    SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --pre-js ${CMAKE_SOURCE_DIR}/emscripten/src/pre.js -Oz -sEXPORT_NAME=FluidsynthModule -sUSE_ES6_IMPORT_META=0 -sMODULARIZE=1 -sSUPPORT_LONGJMP=0 -sMALLOC=emmalloc -s ENVIRONMENT=web,worker -s INITIAL_MEMORY=67108864 -s ALLOW_MEMORY_GROWTH=1 -s ALLOW_TABLE_GROWTH=1 -s EXPORTED_FUNCTIONS='[${EMSCRIPTEN_EXPORTS_OPTIONS}]' -s 'EXTRA_EXPORTED_RUNTIME_METHODS=[\"ccall\", \"cwrap\", \"FS\",\"addFunction\",\"removeFunction\",\"MEMFS\",\"lengthBytesUTF8\",\"UTF8ArrayToString\",\"UTF8ToString\",\"stringToUTF8Array\",\"stringToUTF8\"]'" )
+    SET( CMAKE_EXECUTABLE_SUFFIX ".js" )
+endif ( EMSCRIPTEN_SUPPORT )
+
 add_subdirectory ( src )
 add_subdirectory ( test )
-add_subdirectory ( doc )
+if ( NOT ( EMSCRIPTEN_SUPPORT AND BUILD_SHARED_LIBS ) )
+  add_subdirectory ( doc ) # the demos link libfluidsynth, which is a JS executable in that mode
+endif ()
 
 # pkg-config support
 set ( prefix "${CMAKE_INSTALL_PREFIX}" )
