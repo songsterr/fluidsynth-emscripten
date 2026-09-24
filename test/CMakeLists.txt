@@ -730,4 +730,4 @@ endif (ENABLE_NATIVE_DLS )
     # Temporarily disable limiter tests, because those tests will fail with reference fluidsynth 2.5.x, as it is lacking the limiter
     add_dependencies(check_rendering renderLimiterTests)
 
-endif ( NOT CMAKE_GENERATOR MATCHES "Visual Studio" )
+endif()
