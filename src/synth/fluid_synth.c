@@ -223,6 +223,7 @@ void fluid_synth_settings(fluid_settings_t *settings)
 
     fluid_settings_register_int(settings, "synth.polyphony", 256, 1, 65535, 0);
     fluid_settings_register_int(settings, "synth.midi-channels", 256, 16, 256, 0);
+    fluid_settings_register_int(settings, "synth.per-track-audio", 0, 0, 1, FLUID_HINT_TOGGLED);
     fluid_settings_register_num(settings, "synth.gain", 0.2f, 0.0f, 10.0f, 0);
     fluid_settings_register_int(settings, "synth.audio-channels", 1, 1, 128, 0);
     fluid_settings_register_int(settings, "synth.audio-groups", 1, 1, 128, 0);
@@ -668,6 +669,7 @@ new_fluid_synth(fluid_settings_t *settings)
     fluid_settings_getnum(settings, "synth.sample-rate", &synth->sample_rate);
     fluid_settings_getnum_range(settings, "synth.sample-rate", &sample_rate_min, &sample_rate_max);
     fluid_settings_getint(settings, "synth.midi-channels", &synth->midi_channels);
+    fluid_settings_getint(settings, "synth.per-track-audio", &synth->per_track_audio);
     fluid_settings_getint(settings, "synth.audio-channels", &synth->audio_channels);
     fluid_settings_getint(settings, "synth.audio-groups", &synth->audio_groups);
     fluid_settings_getint(settings, "synth.effects-channels", &synth->effects_channels);

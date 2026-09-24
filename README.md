@@ -71,6 +71,27 @@ To use `libfluidsynth-<version>.js` in AudioWorklet, load it into AudioWorklet b
 
 ## Miscellaneous
 
+### Per-track audio groups (opt-in)
+
+Set `synth.per-track-audio` to `1` before creating the synth, and set
+`synth.audio-channels`, `synth.audio-groups`, and `synth.effects-groups` to the SMF
+track count. The setting defaults to `0`: existing stereo playback is unchanged.
+Check that setting the option succeeds before using this mode with a WASM build.
+
+This mode assumes the channel layout this fork's SMF loader produces: each track
+uses melodic channels 0–8 and drum channel 9, and is remapped onto ten private
+MIDI channels, so at most 25 tracks fit into the default 256 MIDI channels. Each
+track keeps its own drum channel across reset and seek. Channel controllers,
+program changes, and pitch bends remain within that track. Audio and
+reverb/chorus are routed to the same track group. Always set `synth.effects-groups`
+equal to `synth.audio-groups`: it defaults to 1, and then the reverb/chorus of
+every track is mixed into group 0 while the other groups play dry — silently,
+with no error.
+Render all groups with `fluid_synth_process`; fewer output groups intentionally
+wrap/mix according to the normal FluidSynth group semantics. As before, callers
+must zero output buffers before rendering. General SMF channel layouts and
+device-specific SysEx channel reassignment are not supported by this mode.
+
 * Currently only several APIs are tested. Some APIs such as for drivers may not work.
 
 ## License

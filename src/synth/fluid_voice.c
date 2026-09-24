@@ -28,6 +28,7 @@
 #include "fluid_sfont.h"
 #include "fluid_rvoice_event.h"
 #include "fluid_defsfont.h"
+#include "fluid_midi.h"
 
 /* used for filter turn off optimization - if filter cutoff is above the
    specified value and filter q is below the other value, turn filter off */
@@ -290,7 +291,7 @@ fluid_voice_init(fluid_voice_t *voice, fluid_sample_t *sample,
      * generators have been retrieved from the sound font. Here, only
      * the 'working memory' of the voice (position in envelopes, history
      * of IIR filters, position in sample etc) is initialized. */
-    int i;
+    int i, audio_group;
 
     if(!voice->can_access_rvoice)
     {
@@ -354,13 +355,21 @@ fluid_voice_init(fluid_voice_t *voice, fluid_sample_t *sample,
 
     UPDATE_RVOICE_R1(fluid_rvoice_set_synth_gain, voice->synth_gain);
 
-    /* Set up buffer mapping, should be done more flexible in the future. */
+    /* Set up buffer mapping, should be done more flexible in the future.
+     * Dry audio goes to group (audio_group % audio_groups); the reverb/chorus
+     * send goes to fx unit (audio_group % effects_groups). effects_groups
+     * defaults to 1, so with audio_groups = N and effects_groups left alone
+     * every track's reverb lands in unit 0 and is mixed into group 0 while
+     * the other groups play dry -- silently, with no error. Keep
+     * effects_groups equal to audio_groups when per-track routing is on. */
+    audio_group = channel->synth->per_track_audio
+        ? voice->chan / NUMBER_OF_RESERVED_CHANNELS_PER_TRACK : voice->chan;
     i = 2 * channel->synth->audio_groups;
-    i += (voice->chan % channel->synth->effects_groups) * channel->synth->effects_channels;
+    i += (audio_group % channel->synth->effects_groups) * channel->synth->effects_channels;
     UPDATE_RVOICE_GENERIC_I2(fluid_rvoice_buffers_set_mapping, &voice->rvoice->buffers, 2, i + SYNTH_REVERB_CHANNEL);
     UPDATE_RVOICE_GENERIC_I2(fluid_rvoice_buffers_set_mapping, &voice->rvoice->buffers, 3, i + SYNTH_CHORUS_CHANNEL);
 
-    i = 2 * (voice->chan % channel->synth->audio_groups);
+    i = 2 * (audio_group % channel->synth->audio_groups);
     UPDATE_RVOICE_GENERIC_I2(fluid_rvoice_buffers_set_mapping, &voice->rvoice->buffers, 0, i);
     UPDATE_RVOICE_GENERIC_I2(fluid_rvoice_buffers_set_mapping, &voice->rvoice->buffers, 1, i + 1);
 
