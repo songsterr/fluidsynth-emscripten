@@ -7,7 +7,7 @@ The original README is here: [README.original.md](./README.original.md)
 
 ## Build (enikey87)
 
-Prerequisites (Debian/Ubuntu): `git python3 wget xz-utils cmake make pkg-config autoconf automake libtool`.
+Prerequisites (Debian/Ubuntu): `git python3 wget xz-utils cmake make pkg-config autoconf automake libtool`; CMake 3.24 or newer (the bundled signalsmith-audio-basics requires it).
 
 ```shell
 ./build_libsndfile.sh   # libsndfile + ogg/vorbis/flac/opus into ../libsndfile-emscripten; build.sh needs it for the sf3 variants
