@@ -11,7 +11,7 @@ workflows:
         commands:
         - apt-get update -qq
         - apt-get install -y -qq --no-install-recommends git ca-certificates cmake make gcc g++ pkg-config libglib2.0-dev libsndfile1-dev
-        - git submodule update --init -- gcem signalsmith-audio-basics
+        - git -c safe.directory='*' submodule update --init -- gcem signalsmith-audio-basics
         - cmake -S . -B build-native -DCMAKE_BUILD_TYPE=Release -Denable-oss=off
         - make -C build-native -j"$(nproc)" check > /var/www/check-output.txt 2>&1; s=$?; { echo '```'; grep -E "tests (passed|failed)|\*\*\*|The following tests FAILED" -A12 /var/www/check-output.txt | head -80; echo '```'; } > /var/www/check.md; exit $s
         artifacts: ${stepName}.md
