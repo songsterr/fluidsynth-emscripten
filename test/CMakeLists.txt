@@ -31,6 +31,7 @@ ADD_FLUID_TEST(test_seq_evt_order)
 ADD_FLUID_TEST(test_seq_event_queue_remove)
 ADD_FLUID_TEST(test_jack_obtaining_synth)
 ADD_FLUID_TEST(test_utf8_open)
+ADD_FLUID_TEST(test_per_track_audio)
 ADD_FLUID_TEST(test_portamento_time)
 ADD_FLUID_TEST(test_modulator)
 ADD_FLUID_TEST(test_default_mod)
@@ -64,7 +65,7 @@ if ( LIBSNDFILE_HASVORBIS )
     ADD_FLUID_SF_DUMP_TEST(VintageDreamsWaves-v2.sf3)
 endif ( LIBSNDFILE_HASVORBIS )
 
-if(NOT CMAKE_GENERATOR MATCHES "Visual Studio")
+if(NOT CMAKE_GENERATOR MATCHES "Visual Studio" AND TARGET fluidsynth) # manual renders need the CLI
 
     # Prepare the manual test suite down here
     if(NOT DEFINED GENERAL_USER_GS2)

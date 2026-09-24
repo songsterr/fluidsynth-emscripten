@@ -22,7 +22,6 @@
 #include "fluid_synth.h"
 #include "fluid_settings.h"
 
-
 static int fluid_midi_event_length(unsigned char event);
 static int fluid_isasciistring(char *s);
 static long fluid_getlength(const unsigned char *s);
@@ -390,6 +389,13 @@ fluid_midi_file_load_tracks(fluid_midi_file *mf, fluid_player_t *player)
 {
     int i;
 
+    if(player->synth->per_track_audio &&
+            mf->ntracks > player->synth->midi_channels / NUMBER_OF_RESERVED_CHANNELS_PER_TRACK)
+    {
+        FLUID_LOG(FLUID_ERR, "Too many SMF tracks for independent track audio");
+        return FLUID_FAILED;
+    }
+
     for(i = 0; i < mf->ntracks; i++)
     {
         if(fluid_midi_file_read_track(mf, player, i) != FLUID_OK)
@@ -568,6 +574,21 @@ fluid_midi_file_read_track(fluid_midi_file *mf, fluid_player_t *player, int num)
     {
         FLUID_LOG(FLUID_ERR, "Unexpected end of file");
         return FLUID_FAILED;
+    }
+
+    fluid_midi_event_t *evt = track->cur;
+
+    while (evt) {
+        if(player->synth->per_track_audio &&
+                evt->channel >= NUMBER_OF_RESERVED_CHANNELS_PER_TRACK)
+        {
+            FLUID_LOG(FLUID_ERR, "Independent track audio requires MIDI channels 0 through 9");
+            return FLUID_FAILED;
+        }
+        if (evt->channel != 9 || player->synth->per_track_audio) {
+            evt->channel = num * NUMBER_OF_RESERVED_CHANNELS_PER_TRACK + evt->channel;
+        }
+        evt = evt->next;
     }
 
     return FLUID_OK;

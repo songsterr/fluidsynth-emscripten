@@ -135,6 +135,7 @@ struct _fluid_synth_t
     int verbose;                       /**< Turn verbose mode on? */
     double sample_rate;                /**< The sample rate */
     int midi_channels;                 /**< the number of MIDI channels (>= 16) */
+    int per_track_audio;               /**< route each ten-channel SMF track to its own audio group */
     int bank_select;                   /**< the style of Bank Select MIDI messages */
     int audio_channels;                /**< the number of audio channels (1 channel=left+right) */
     int audio_groups;                  /**< the number of (stereo) 'sub'groups from the synth. Typically equal to audio_channels. */

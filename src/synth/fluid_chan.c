@@ -21,6 +21,7 @@
 #include "fluid_mod.h"
 #include "fluid_synth.h"
 #include "fluid_sfont.h"
+#include "fluid_midi.h"
 
 /* Field shift amounts for sfont_bank_prog bit field integer */
 #define PROG_SHIFTVAL   0
@@ -89,7 +90,9 @@ fluid_channel_init(fluid_channel_t *chan)
     chan->portamentomode = FLUID_CHANNEL_PORTAMENTO_MODE_EACH_NOTE;	/* Default mode */
     /*--- End of poly/mono initialization --------------------------------------*/
 
-    chan->channel_type = (chan->channum == 9) ? CHANNEL_TYPE_DRUM : CHANNEL_TYPE_MELODIC;
+    i = chan->synth->per_track_audio
+        ? chan->channum % NUMBER_OF_RESERVED_CHANNELS_PER_TRACK : chan->channum;
+    chan->channel_type = (i == 9) ? CHANNEL_TYPE_DRUM : CHANNEL_TYPE_MELODIC;
     prognum = 0;
     banknum = (chan->channel_type == CHANNEL_TYPE_DRUM) ? DRUM_INST_BANK : 0;
 
