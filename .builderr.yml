@@ -9,8 +9,8 @@ workflows:
           cpu: 2000
           memory: 1000
         commands:
-        - apt-get update -qq
-        - apt-get install -y -qq --no-install-recommends git ca-certificates cmake make gcc g++ pkg-config libglib2.0-dev libsndfile1-dev
+        - apt-get update -qq >/dev/null
+        - apt-get install -y -qq --no-install-recommends git ca-certificates cmake make gcc g++ pkg-config libglib2.0-dev libsndfile1-dev >/dev/null
         - git config --global --add safe.directory '*'
         - git submodule update --init -- gcem signalsmith-audio-basics
         - cmake -S . -B build-native -DCMAKE_BUILD_TYPE=Release -Denable-oss=off
@@ -27,8 +27,8 @@ workflows:
           cpu: 4000
           memory: 2000
         commands:
-        - apt-get update -qq
-        - apt-get install -y -qq --no-install-recommends autoconf automake libtool pkg-config wget xz-utils ca-certificates
+        - apt-get update -qq >/dev/null
+        - apt-get install -y -qq --no-install-recommends autoconf automake libtool pkg-config wget xz-utils ca-certificates >/dev/null
         - pip3 install cmake==3.28.3
         - ./build_libsndfile.sh
         - ./build.sh
