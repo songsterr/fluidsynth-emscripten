@@ -4,6 +4,8 @@
 set -e
 
 source "$(dirname "$0")/emsdk-env.sh"
+# Submodules: gcem (CMake < 3.18, as in the emsdk image, cannot download it) and the signalsmith limiter/reverbs.
+git -C "$(dirname "$0")" submodule update --init -- gcem signalsmith-audio-basics
 
 # Function to compile libfluidsynth with specified flags and output suffix
 compile_libfluidsynth() {

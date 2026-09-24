@@ -14,7 +14,7 @@ Prerequisites (Debian/Ubuntu): `git python3 wget xz-utils cmake make pkg-config 
 ./build.sh              # every libfluidsynth-X.X.X*.js / .wasm variant into ./dist
 ```
 
-Both scripts source `emsdk-env.sh`, which installs Emscripten `3.1.10` (override with `EMSDK_VERSION`) into `../emsdk` unless `emcmake` is already on `PATH`. An `emcmake` you provide yourself must run with node < 18: 3.1.10 output calls the global `fetch` node 18+ ships, and autoconf's run test fails with `cannot run C compiled programs`.
+`build.sh` also checks out the `gcem` and `signalsmith-audio-basics` submodules (constexpr math, limiter and reverb engines). Both scripts source `emsdk-env.sh`, which installs Emscripten `3.1.10` (override with `EMSDK_VERSION`) into `../emsdk` unless `emcmake` is already on `PATH`. An `emcmake` you provide yourself must run with node < 18: 3.1.10 output calls the global `fetch` node 18+ ships, and autoconf's run test fails with `cannot run C compiled programs`.
 
 ## Install
 
