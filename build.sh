@@ -11,7 +11,9 @@ repo_dir=$(cd "$(dirname "$0")" && pwd)
 for dir in "$repo_dir" "$repo_dir/gcem" "$repo_dir/signalsmith-audio-basics"; do
     git config --global --get-all safe.directory 2>/dev/null | grep -qx "$dir" || git config --global --add safe.directory "$dir"
 done
-git -C "$repo_dir" submodule update --init -- gcem signalsmith-audio-basics
+if [ ! -f "$repo_dir/gcem/include/gcem.hpp" ] || [ ! -f "$repo_dir/signalsmith-audio-basics/CMakeLists.txt" ]; then
+    git -C "$repo_dir" submodule update --init -- gcem signalsmith-audio-basics
+fi
 
 # Function to compile libfluidsynth with specified flags and output suffix
 compile_libfluidsynth() {
