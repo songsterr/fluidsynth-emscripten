@@ -7,14 +7,14 @@ workflows:
         image: debian:bookworm-slim
         resources:
           cpu: 2000
-          memory: 1000
+          memory: 4000
         commands:
         - apt-get update -qq >/dev/null
         - apt-get install -y -qq --no-install-recommends git ca-certificates cmake make gcc g++ pkg-config libglib2.0-dev libsndfile1-dev >/dev/null
         - git config --global --add safe.directory '*'
         - git submodule update --init -- gcem signalsmith-audio-basics
         - cmake -S . -B build-native -DCMAKE_BUILD_TYPE=Release -Denable-oss=off
-        - make -C build-native -j"$(nproc)" check > /var/www/check-output.txt 2>&1; s=$?; { echo '```'; grep -E "tests (passed|failed)|\*\*\*|The following tests FAILED|error:|Error [0-9]" -A12 /var/www/check-output.txt | head -80 || true; echo '```'; } > /var/www/check.md; cat /var/www/check.md; exit $s
+        - echo "== make check =="; make -C build-native -j4 check > /var/www/check-output.txt 2>&1; s=$?; { echo '```'; grep -E "tests (passed|failed)|\*\*\*|The following tests FAILED|error:|Error [0-9]" -A12 /var/www/check-output.txt | head -80 || true; echo '```'; } > /var/www/check.md; cat /var/www/check.md; exit $s
         artifacts: ${stepName}.md
   build:
     when:
