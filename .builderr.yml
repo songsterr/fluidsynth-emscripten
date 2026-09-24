@@ -13,8 +13,8 @@ workflows:
         - apt-get install -y -qq --no-install-recommends git ca-certificates cmake make gcc g++ pkg-config libglib2.0-dev libsndfile1-dev >/dev/null
         - git config --global --add safe.directory '*'
         - git submodule update --init -- gcem signalsmith-audio-basics
-        - cmake -S . -B build-native -DCMAKE_BUILD_TYPE=Release -Denable-oss=off
-        - s=0; make -C build-native -j4 check 2>&1 | tee /var/www/check-output.txt || s=$?; { echo '```'; grep -E "tests (passed|failed)|\*\*\*|The following tests FAILED|error:|Error [0-9]" -A12 /var/www/check-output.txt | head -80 || true; echo '```'; } > /var/www/check.md; exit $s
+        - cmake -S . -B build-native -DCMAKE_BUILD_TYPE=Release -Denable-oss=off -Denable-network=off
+        - s=0; make -C build-native -j4 check > /var/www/check-output.txt 2>&1 || s=$?; tail -n 120 /var/www/check-output.txt; { echo '```'; grep -E "tests (passed|failed)|\*\*\*|The following tests FAILED|error:|Error [0-9]" -A12 /var/www/check-output.txt | head -80 || true; echo '```'; } > /var/www/check.md; exit $s
         artifacts: ${stepName}.md
   build:
     when:
