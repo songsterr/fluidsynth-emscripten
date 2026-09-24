@@ -5,8 +5,13 @@ set -e
 
 source "$(dirname "$0")/emsdk-env.sh"
 # Submodules: gcem (CMake < 3.18, as in the emsdk image, cannot download it) and the signalsmith limiter/reverbs.
-# safe.directory: in CI the checkout is owned by the clone container's user, not the step's.
-git -c safe.directory='*' -C "$(dirname "$0")" submodule update --init -- gcem signalsmith-audio-basics
+# In CI the checkout belongs to the clone container's user; git 2.25 in the emsdk image only honours
+# safe.directory from the global config, and only as explicit paths.
+repo_dir=$(cd "$(dirname "$0")" && pwd)
+for dir in "$repo_dir" "$repo_dir/gcem" "$repo_dir/signalsmith-audio-basics"; do
+    git config --global --get-all safe.directory 2>/dev/null | grep -qx "$dir" || git config --global --add safe.directory "$dir"
+done
+git -C "$repo_dir" submodule update --init -- gcem signalsmith-audio-basics
 
 # Function to compile libfluidsynth with specified flags and output suffix
 compile_libfluidsynth() {
