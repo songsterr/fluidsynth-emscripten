@@ -24,7 +24,7 @@ npm install @songsterr/fluidsynth-emscripten   # @songsterr scope resolves to np
 
 ## CI
 
-Builderr (`.builderr.yml`) runs on every push: fluidsynth's own `make check` natively, and the full wasm build with `dist/` attached as artifacts. A push to `main` also publishes that CI-built `dist/` as `@songsterr/fluidsynth-emscripten` to `npm.terra.songsterr.com`, unless `package.json`'s version is already there — bump `version` to release.
+Builderr (`.builderr.yml`) runs on every push: fluidsynth's own `make check` natively, and the full wasm build with `dist/` attached as artifacts, then `test/wasm/smoke.mjs` loads every variant the way consumers do (exports, sf2/sf3 loading, rendering, callbacks, the MIDI player). A push to `main` also publishes that CI-built `dist/` as `@songsterr/fluidsynth-emscripten` to `npm.terra.songsterr.com`, unless `package.json`'s version is already there — bump `version` to release.
 
 ## Build with Docker (enikey87)
 

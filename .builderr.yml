@@ -32,6 +32,11 @@ workflows:
           - cp -r dist /var/www/
           - ls -l dist | awk -v link="$BUILDERR_ARTIFACTS_LINK" 'NR>1 {printf "- [%s](%s/dist/%s) %d bytes\n", $9, link, $9, $5}' > /var/www/wasm.md
 
+      smoke:
+        image: node:22-slim
+        commands:
+          - node test/wasm/smoke.mjs
+
       publish:
         when:
           branch: main
