@@ -52,7 +52,7 @@ find_library(
   HINTS "${PC_OPUS_LIBDIR}")
 
 # Get the version from pkg-config
-if(PC_OPUS_VERSION)
+if(PC_OPUS_VERSION MATCHES "^[0-9]+(\\.[0-9]+)*$") # a non-numeric Version: in opus.pc would break the list(GET) below
   set(Opus_VERSION "${PC_OPUS_VERSION}.0")
   set(OPUS_VERSION "${Opus_VERSION}")
   set(OPUS_VERSION_STRING "${Opus_VERSION}")

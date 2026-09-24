@@ -133,6 +133,10 @@ if ( CMAKE_SYSTEM_NAME MATCHES "Emscripten" )
     option ( enable-separate-wasm "generate separate .wasm file" off )
     set ( EMSCRIPTEN_SUPPORT on )
     set ( osal "embedded" )
+    # libsndfile-emscripten lives outside the emscripten sysroot; let find_library/find_path see it.
+    set ( CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH )
+    set ( CMAKE_FIND_ROOT_PATH_MODE_INCLUDE BOTH )
+    set ( CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH )
     foreach ( opt enable-alsa enable-dbus enable-ipv6 enable-jack enable-native-dls enable-network
                   enable-openmp enable-oss enable-pipewire enable-portaudio enable-pulseaudio
                   enable-readline enable-sdl3 enable-threads )
@@ -917,6 +921,10 @@ endif ()
 
 # Process subdirectories
 if ( EMSCRIPTEN_SUPPORT )
+    if ( LIBSNDFILE_SUPPORT )
+        # FindSndFileLegacy cannot run its vorbis probe when cross-compiling; libsndfile-emscripten ships the xiph codecs.
+        set ( LIBSNDFILE_HASVORBIS 1 )
+    endif ( LIBSNDFILE_SUPPORT )
     FILE( STRINGS "emscripten/exports.txt" EMSCRIPTEN_EXPORTS_OPTIONS NEWLINE_CONSUME )
     STRING ( REPLACE "\n" "" EMSCRIPTEN_EXPORTS_OPTIONS "${EMSCRIPTEN_EXPORTS_OPTIONS}" )
     if ( NOT BUILD_SHARED_LIBS )
