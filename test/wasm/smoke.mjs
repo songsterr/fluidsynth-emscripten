@@ -164,6 +164,49 @@ const checks = {
     return `done after ${blocks} blocks, tick ${tick}`
   },
 
+  // The three 2.6 knobs consumers may turn: each must change the rendered audio.
+  knobs (M) {
+    const NOTE_ON = (M, synth) => { M._fluid_synth_program_select(synth, 0, 1, 0, 0); M._fluid_synth_noteon(synth, 0, 60, 127) }
+    const render = (settingsFn, synthFn) => {
+      const settings = M._new_fluid_settings()
+      settingsFn(settings)
+      const synth = M._new_fluid_synth(settings)
+      if (synthFn) synthFn(synth)
+      loadSoundfont(M, synth, 'test.sf2', sf2)
+      NOTE_ON(M, synth)
+      const frames = 8192
+      const l = M._malloc(frames * 4)
+      const r = M._malloc(frames * 4)
+      M._fluid_synth_write_float(synth, frames, l, 0, 1, r, 0, 1)
+      const out = Float32Array.from(new Float32Array(M.HEAPF32.buffer, l, frames))
+      M._free(l)
+      M._free(r)
+      M._delete_fluid_synth(synth)
+      M._delete_fluid_settings(settings)
+      return out
+    }
+    const setStr = (settings, key, value) => { const k = cstr(M, key); const v = cstr(M, value); M._fluid_settings_setstr(settings, k, v); M._free(k); M._free(v) }
+    const setInt = (settings, key, value) => { const k = cstr(M, key); M._fluid_settings_setint(settings, k, value); M._free(k) }
+    const setNum = (settings, key, value) => { const k = cstr(M, key); M._fluid_settings_setnum(settings, k, value); M._free(k) }
+    const differs = (a, b) => a.some((v, i) => Math.abs(v - b[i]) > 1e-6)
+    const peak = a => a.reduce((m, v) => Math.max(m, Math.abs(v)), 0)
+
+    const dat = render(s => setStr(s, 'synth.reverb.engine', 'dat'))
+    const fdn = render(s => setStr(s, 'synth.reverb.engine', 'fdn'))
+    assert(differs(dat, fdn), 'synth.reverb.engine=fdn renders the same audio as dat')
+
+    const loud = s => { setNum(s, 'synth.gain', 10) }
+    const unlimited = render(loud)
+    const limited = render(s => { loud(s); setInt(s, 'synth.limiter.active', 1) })
+    assert(peak(unlimited) > 1, `gain 10 without a limiter should clip: peak ${peak(unlimited)}`)
+    assert(peak(limited) <= 1.0001 && peak(limited) < peak(unlimited), `limiter left peak at ${peak(limited)} (unlimited ${peak(unlimited)})`)
+
+    const interp4 = render(() => {}, synth => M._fluid_synth_set_interp_method(synth, -1, 4))
+    const interp5 = render(() => {}, synth => M._fluid_synth_set_interp_method(synth, -1, 5))
+    assert(differs(interp4, interp5), 'FLUID_INTERP_MID renders the same audio as 4th order')
+    return `reverb fdn≠dat, limiter peak ${peak(unlimited).toFixed(2)}→${peak(limited).toFixed(2)}, interp 5≠4`
+  },
+
   leak (M) {
     for (let i = 0; i < 10; i++) deleteSynth(M, newSynth(M))
     const before = M.HEAPU8.byteLength

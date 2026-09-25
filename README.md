@@ -42,7 +42,7 @@ prebuilt libsndfile (needed for sf3), so a rebuild only recompiles fluidsynth.
 > Tested with Emscripten version 3.1.10.
 
 1. (Optional) Update `emscripten/exports.txt`, containing export functions for JS program
-    * The script `emscripten/make-exports.js` will update this automatically, gathering functions from `include` directory.
+    * The script `emscripten/make-exports.cjs` will update this automatically, gathering functions from `include` directory.
 2. Make sure that Emscripten is usable on the current environment
 3. Make `build` directory
 4. Enter `build` directory and execute `emcmake cmake -Denable-oss=off -DCMAKE_BUILD_TYPE=Release ..`

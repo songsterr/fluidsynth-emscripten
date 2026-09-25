@@ -85,4 +85,6 @@ const includes = gatherIncludeFiles(INCLUDE_DIR, true, (e) => e === 'shell.h');
 const funcs = flattenArray(includes.map((file) => gatherAPIDeclarations(file)))
     .filter((name) => IGNORE_FUNCTIONS.indexOf(name) < 0);
 
+// Consumers allocate their own buffers through the module; these are not FluidSynth API.
+funcs.push('malloc', 'free');
 fs.writeFileSync(OUTPUT_NAME, '"_' + funcs.join('",\n"_') + '",\n');
