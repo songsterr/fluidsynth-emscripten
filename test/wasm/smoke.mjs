@@ -54,9 +54,9 @@ function energy (M, synth, frames = FRAMES) {
 // Reverb and chorus off, so all_sounds_off leaves true silence instead of an effect tail.
 function newSynth (M) {
   const settings = M._new_fluid_settings()
-  for (const key of ['synth.reverb.active', 'synth.chorus.active']) {
+  for (const key of ['synth.reverb.active', 'synth.chorus.active', 'synth.midi-channels']) {
     const k = cstr(M, key)
-    M._fluid_settings_setint(settings, k, 0)
+    M._fluid_settings_setint(settings, k, key === 'synth.midi-channels' ? 256 : 0)
     M._free(k)
   }
   return { settings, synth: M._new_fluid_synth(settings) }

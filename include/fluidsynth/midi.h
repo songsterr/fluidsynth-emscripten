@@ -290,11 +290,11 @@ FLUIDSYNTH_API int fluid_player_set_tick_callback(fluid_player_t *player, handle
  *   index keep their channels as written in the file
  * @return #FLUID_OK on success, #FLUID_FAILED otherwise
  *
- * The table replaces the built-in per-track channel layout for files loaded
- * after the call; files are routed once at load time, so seek and loop are not
- * re-routed. The player copies the array, the caller may free it right after
- * the call. Loading a file whose table routes an event to a synth channel at
- * or beyond the synth's MIDI channel count fails the load.
+ * The table routes the channel events of files loaded after the call; files
+ * are routed once at load time, so seek and loop are not re-routed. The player
+ * copies the array, the caller may free it right after the call. Loading a
+ * file whose table routes an event to a synth channel at or beyond the
+ * synth's MIDI channel count fails the load.
  *
  * @note The drum character of the target channels is not changed by this call;
  *   use fluid_synth_set_channel_type() to type routed channels as drums.

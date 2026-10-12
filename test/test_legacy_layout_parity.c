@@ -4,7 +4,6 @@
 #include "fluid_synth.h"
 #include "fluid_midi.h"
 
-#include <string.h>
 #include <math.h>
 
 /* Three tracks over the Songsterr channel diet: melodic channels 0-2, drums on 9. */
@@ -48,7 +47,7 @@ static void legacy_table(int *map)
     }
 }
 
-static void render(int use_map, float *pcm)
+static void render(float *pcm)
 {
     fluid_settings_t *settings = new_fluid_settings();
     fluid_synth_t *synth;
@@ -65,11 +64,8 @@ static void render(int use_map, float *pcm)
     player = new_fluid_player(synth);
     TEST_ASSERT(player != NULL);
 
-    if(use_map)
-    {
-        legacy_table(map);
-        TEST_SUCCESS(fluid_player_set_channel_map(player, map, NTRACKS));
-    }
+    legacy_table(map);
+    TEST_SUCCESS(fluid_player_set_channel_map(player, map, NTRACKS));
 
     TEST_SUCCESS(fluid_player_add_mem(player, midi, sizeof(midi)));
     TEST_SUCCESS(fluid_player_play(player));
@@ -85,39 +81,34 @@ static void render(int use_map, float *pcm)
     delete_fluid_settings(settings);
 }
 
-int main(int argc, char **argv)
+int main(void)
 {
     static float with_map[SAMPLES];
-    static float builtin[SAMPLES];
+    static float expected[SAMPLES];
+    FILE *fixture;
     double rms = 0;
     float max_diff = 0;
     int i;
 
-    render(1, with_map);
-    render(0, builtin);
+    /* the fixture is the engine's own T*10 rewriting, rendered before that
+     * rewriting was removed; the map must reproduce it exactly */
+    fixture = fopen(TEST_LEGACY_LAYOUT_PCM, "rb");
+    TEST_ASSERT(fixture != NULL);
+    TEST_ASSERT(fread(expected, sizeof(float), SAMPLES, fixture) == SAMPLES);
+    fclose(fixture);
 
-    /* --dump writes the engine's own rewriting as the fixture the tree keeps
-     * after that rewriting is removed. */
-    if(argc == 3 && strcmp(argv[1], "--dump") == 0)
-    {
-        FILE *fixture = fopen(argv[2], "wb");
-        TEST_ASSERT(fixture != NULL);
-        TEST_ASSERT(fwrite(builtin, sizeof(float), SAMPLES, fixture) == SAMPLES);
-        TEST_ASSERT(fclose(fixture) == 0);
-        printf("wrote %s\n", argv[2]);
-        return 0;
-    }
+    render(with_map);
 
     for(i = 0; i < SAMPLES; i++)
     {
-        float diff = fabsf(with_map[i] - builtin[i]);
+        float diff = fabsf(with_map[i] - expected[i]);
 
         if(diff > max_diff)
         {
             max_diff = diff;
         }
 
-        rms += (double)builtin[i] * builtin[i];
+        rms += (double)expected[i] * expected[i];
     }
 
     rms = sqrt(rms / SAMPLES);

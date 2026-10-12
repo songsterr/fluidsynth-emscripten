@@ -74,9 +74,9 @@ static void play_midi(fluid_synth_t *synth, const int *map, int ntracks, event_l
     delete_fluid_player(player);
 }
 
-/* Without a table the built-in layout applies: track 0 keeps its channel,
- * track 1 keeps channel 9 (shared drums). */
-static void test_no_map_keeps_builtin_layout(void)
+/* Without a table events keep the channels as written in the file: stock
+ * FluidSynth behaviour, no per-track rewriting. */
+static void test_no_map_keeps_file_channels(void)
 {
     fluid_settings_t *settings = new_fluid_settings();
     fluid_synth_t *synth = new_fluid_synth(settings);
@@ -85,9 +85,8 @@ static void test_no_map_keeps_builtin_layout(void)
 
     play_midi(synth, NULL, 0, &log);
 
-    /* 0 * 10 + 2, 1 * 10 + 3, and channel 9 shared as written */
-    TEST_ASSERT(log.note_count == 3 && log.notes[0] == 2 && log.notes[1] == 13 && log.notes[2] == 9);
-    TEST_ASSERT(log.control_count == 3 && log.controls[0] == 2 && log.controls[1] == 13 && log.controls[2] == 9);
+    TEST_ASSERT(log.note_count == 3 && log.notes[0] == 2 && log.notes[1] == 3 && log.notes[2] == 9);
+    TEST_ASSERT(log.control_count == 3 && log.controls[0] == 2 && log.controls[1] == 3 && log.controls[2] == 9);
 
     delete_fluid_synth(synth);
     delete_fluid_settings(settings);
@@ -183,7 +182,7 @@ static void test_set_channel_map_rejects_invalid_arguments(void)
 
 int main(void)
 {
-    test_no_map_keeps_builtin_layout();
+    test_no_map_keeps_file_channels();
     test_map_routes_channels();
     test_map_target_out_of_range_fails_load();
     test_set_channel_map_rejects_invalid_arguments();

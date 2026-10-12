@@ -389,13 +389,6 @@ fluid_midi_file_load_tracks(fluid_midi_file *mf, fluid_player_t *player)
 {
     int i;
 
-    if(player->synth->per_track_audio &&
-            mf->ntracks > player->synth->midi_channels / NUMBER_OF_RESERVED_CHANNELS_PER_TRACK)
-    {
-        FLUID_LOG(FLUID_ERR, "Too many SMF tracks for independent track audio");
-        return FLUID_FAILED;
-    }
-
     for(i = 0; i < mf->ntracks; i++)
     {
         if(fluid_midi_file_read_track(mf, player, i) != FLUID_OK)
@@ -599,22 +592,6 @@ fluid_midi_file_read_track(fluid_midi_file *mf, fluid_player_t *player, int num)
             if(row[evt->channel] >= 0)
             {
                 evt->channel = row[evt->channel];
-            }
-            evt = evt->next;
-        }
-    }
-    else
-    {
-        while(evt)
-        {
-            if(player->synth->per_track_audio &&
-                    evt->channel >= NUMBER_OF_RESERVED_CHANNELS_PER_TRACK)
-            {
-                FLUID_LOG(FLUID_ERR, "Independent track audio requires MIDI channels 0 through 9");
-                return FLUID_FAILED;
-            }
-            if (evt->channel != 9 || player->synth->per_track_audio) {
-                evt->channel = num * NUMBER_OF_RESERVED_CHANNELS_PER_TRACK + evt->channel;
             }
             evt = evt->next;
         }
@@ -1970,10 +1947,10 @@ fluid_player_set_tick_callback(fluid_player_t *player, handle_midi_tick_func_t h
  * @param ntracks number of tracks the table covers
  * @return #FLUID_OK or #FLUID_FAILED
  *
- * The table replaces the built-in per-track channel layout for files loaded
- * after the call; the player copies the array, the caller may free it right
- * after the call. Loading a file whose table routes an event to a synth
- * channel at or beyond the synth's MIDI channel count fails the load.
+ * The table routes the channel events of files loaded after the call; the
+ * player copies the array, the caller may free it right after the call.
+ * Loading a file whose table routes an event to a synth channel at or beyond
+ * the synth's MIDI channel count fails the load.
  */
 int
 fluid_player_set_channel_map(fluid_player_t *player, const int *map, int ntracks)
