@@ -13,4 +13,9 @@ elif ! grep -q "E404" <<<"$out"; then
     echo "$out"
     exit 1
 fi
-npm publish "$@"
+# npm refuses prerelease versions unless --tag names a dist-tag; keep them off `latest`
+if [[ $version == *-* ]]; then
+    npm publish --tag beta "$@"
+else
+    npm publish "$@"
+fi
