@@ -27,6 +27,7 @@ const FRAMES = 4096
 const FLUID_ERR = 1
 const FLUID_PLAYER_DONE = 3
 const CHANNEL_TYPE_DRUM = 1
+const CHANNEL_TYPE_MELODIC = 0
 
 function assert (cond, msg) {
   if (!cond) throw new Error(msg)
@@ -320,6 +321,187 @@ const checks = {
     assert(Math.abs(sharedEnergy[0] - sharedEnergy[1]) < 0.25 * Math.max(...sharedEnergy),
       `shared drum volumes differ: ${sharedEnergy}`)
     return `routed ${routedEnergy.map(v => v.toExponential(1))}, shared ${sharedEnergy.map(v => v.toExponential(1))}`
+  },
+
+  // #17's proof as a smoke check: with an interleaved channel map (chan = k*N + T)
+  // the stock chan % audio_groups routing puts every track in its own dry group,
+  // and the groups plus fx sum to a plain stereo render of the same notes. The
+  // reserved T*10 layout under the same routing is the negative control: it must
+  // scatter, so the matrix above cannot pass vacuously.
+  interleave (M) {
+    const N = 3
+    const FR = 4096
+    const MAX_BLOCKS = 400
+    const TICKS_PER_QUARTER = 96
+    // note off at 2 quarters leaves the rest of the 8-quarter window for the
+    // release tail, so it cannot leak into the next window's energy budget
+    const WINDOW_QUARTERS = 8
+    const windowTicks = WINDOW_QUARTERS * TICKS_PER_QUARTER
+
+    // Format 1, three tracks: guitar (9 melodic channels, program 25), drums
+    // (channel 9, typed below), bass (3 melodic channels, program 33). Every
+    // channel sends CC91 127 so the fx path carries signal too. Track t sounds
+    // in window t; the windows are what the solo matrix measures.
+    const interleaveSmf = () => {
+      const vlq = n => n < 128 ? [n] : [0x80 | (n >> 7), n & 0x7f]
+      const defs = [
+        { channels: [0, 1, 2, 3, 4, 5, 6, 7, 8], program: 25, note: 60 },
+        { channels: [9], program: null, note: 36 },
+        { channels: [0, 1, 2], program: 33, note: 43 },
+      ]
+      const track = (def, window) => {
+        const start = window * windowTicks
+        const events = []
+        for (const ch of def.channels) {
+          if (def.program !== null) events.push([start, 0xc0 | ch, def.program])
+          events.push([start, 0xb0 | ch, 91, 127])
+          // one note per channel: the routing under test is chosen by channel
+          events.push([start + TICKS_PER_QUARTER / 2, 0x90 | ch, def.note, 100])
+          events.push([start + 2 * TICKS_PER_QUARTER, 0x80 | ch, def.note, 0])
+        }
+        events.sort((a, b) => a[0] - b[0])
+        let prev = 0
+        const bytes = []
+        for (const [abs, ...ev] of events) {
+          bytes.push(...vlq(abs - prev), ...ev)
+          prev = abs
+        }
+        bytes.push(0, 0xff, 0x2f, 0x00)
+        return [0x4d, 0x54, 0x72, 0x6b, 0, 0, 0, bytes.length, ...bytes]
+      }
+      return Uint8Array.from([
+        0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 1, 0, 3, 0, TICKS_PER_QUARTER,
+        ...defs.flatMap((def, window) => track(def, window)),
+      ])
+    }
+
+    const channelMap = target => {
+      const map = new Int32Array(3 * 16).fill(-1)
+      for (let t = 0; t < 3; t++) for (let ch = 0; ch < 16; ch++) map[t * 16 + ch] = target(t, ch)
+      return map
+    }
+    const interleaved = channelMap((t, ch) => ch * N + t)
+    const reserved = channelMap((t, ch) => t * 10 + ch)
+
+    const render = (map, drumChannel, groups) => {
+      const settings = M._new_fluid_settings()
+      for (const [key, value] of [['synth.midi-channels', 256], ['synth.audio-channels', groups], ['synth.audio-groups', groups], ['synth.effects-groups', groups]]) {
+        const k = cstr(M, key)
+        M._fluid_settings_setint(settings, k, value)
+        M._free(k)
+      }
+      const synth = M._new_fluid_synth(settings)
+      loadSoundfont(M, synth, 'interleave-drums.sf2', readFileSync(path.join(root, 'test', 'wasm', 'fixtures', 'drums.sf2')))
+      loadSoundfont(M, synth, 'interleave.sf2', sf2)
+      const player = M._new_fluid_player(synth)
+      const mapPtr = M._malloc(map.byteLength)
+      M.HEAP32.set(map, mapPtr / 4)
+      assert(M._fluid_player_set_channel_map(player, mapPtr, 3) === 0, 'fluid_player_set_channel_map failed')
+      M._free(mapPtr)
+      // stock typing follows the channel number (drums on 9), so every mapped
+      // target needs its type set explicitly; the types survive the reset below
+      for (let t = 0; t < 3; t++) {
+        for (let ch = 0; ch < 16; ch++) {
+          M._fluid_synth_set_channel_type(synth, map[t * 16 + ch], ch === 9 ? CHANNEL_TYPE_DRUM : CHANNEL_TYPE_MELODIC)
+        }
+      }
+      M._fluid_synth_system_reset(synth)
+      const bytes = interleaveSmf()
+      const p = M._malloc(bytes.length)
+      M.HEAPU8.set(bytes, p)
+      assert(M._fluid_player_add_mem(player, p, bytes.length) === 0, 'fluid_player_add_mem failed')
+      M._free(p)
+      assert(M._fluid_player_play(player) === 0, 'fluid_player_play failed')
+
+      const nout = 2 * groups
+      const nfx = 4 * groups
+      // process() takes arrays of buffer pointers, not flat storage
+      const out = M._malloc(nout * FR * 4)
+      const fx = M._malloc(nfx * FR * 4)
+      const outPtrs = M._malloc(nout * 4)
+      const fxPtrs = M._malloc(nfx * 4)
+      for (let i = 0; i < nout; i++) M.HEAP32[outPtrs / 4 + i] = out + i * FR * 4
+      for (let i = 0; i < nfx; i++) M.HEAP32[fxPtrs / 4 + i] = fx + i * FR * 4
+      const dry = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+      let wet = 0
+      const sumL = new Float64Array(MAX_BLOCKS * FR)
+      const sumR = new Float64Array(MAX_BLOCKS * FR)
+      let blocks = 0
+      while (M._fluid_player_get_status(player) !== FLUID_PLAYER_DONE && blocks < MAX_BLOCKS) {
+        M.HEAPF32.fill(0, out / 4, out / 4 + nout * FR)
+        M.HEAPF32.fill(0, fx / 4, fx / 4 + nfx * FR)
+        M._fluid_synth_process(synth, FR, nfx, fxPtrs, nout, outPtrs)
+        const window = M._fluid_player_get_current_tick(player) < 2 * windowTicks
+          ? (M._fluid_player_get_current_tick(player) < windowTicks ? 0 : 1) : 2
+        const outF = new Float32Array(M.HEAPF32.buffer, out, nout * FR)
+        const fxF = new Float32Array(M.HEAPF32.buffer, fx, nfx * FR)
+        for (let i = 0; i < nfx * FR; i++) wet += fxF[i] * fxF[i]
+        for (let g = 0; g < groups; g++) {
+          let e = 0
+          for (let i = 0; i < FR; i++) {
+            const l = outF[(g * 2) * FR + i]
+            const r = outF[(g * 2 + 1) * FR + i]
+            e += l * l + r * r
+            sumL[blocks * FR + i] += l + fxF[(g * 4) * FR + i] + fxF[(g * 4 + 2) * FR + i]
+            sumR[blocks * FR + i] += r + fxF[(g * 4 + 1) * FR + i] + fxF[(g * 4 + 3) * FR + i]
+          }
+          dry[window][g] += e
+        }
+        blocks += 1
+      }
+      assert(M._fluid_player_get_status(player) === FLUID_PLAYER_DONE, `player not done after ${blocks} blocks`)
+      const bank = (() => {
+        const ints = M._malloc(12)
+        M._fluid_synth_get_program(synth, drumChannel, ints, ints + 4, ints + 8)
+        const b = M.HEAP32[(ints + 4) / 4]
+        M._free(ints)
+        return b
+      })()
+      M._delete_fluid_player(player)
+      M._free(out)
+      M._free(fx)
+      M._free(outPtrs)
+      M._free(fxPtrs)
+      M._delete_fluid_synth(synth)
+      M._delete_fluid_settings(settings)
+      return { dry, wet, sumL, sumR, blocks, bank }
+    }
+
+    const routed = render(interleaved, 9 * N + 1, N)
+    assert(routed.wet > 1e-2, `fx buffers carry no signal (${routed.wet.toExponential(1)}); the parity check below would be vacuous`)
+
+    // solo-track matrix: during window w only group w carries energy
+    const shares = routed.dry.map((groups, w) => {
+      const total = groups.reduce((a, b) => a + b, 0)
+      return { own: groups[w], total }
+    })
+    shares.forEach(({ own, total }, w) => {
+      assert(own > 1e-3, `window ${w}: own group silent (${own})`)
+      assert(total - own < 1e-4 * own, `window ${w}: foreign groups carry ${(total - own).toExponential(1)} vs own ${own.toExponential(1)}`)
+    })
+    assert(routed.bank === 128, `drum channel not on the drum bank: ${routed.bank}`)
+
+    // sum of groups + fx equals a plain stereo render of the same notes
+    const stereo = render(interleaved, 9 * N + 1, 1)
+    assert(stereo.blocks === routed.blocks, `stereo render did ${stereo.blocks} blocks, groups render ${routed.blocks}`)
+    let maxDiff = 0
+    let rms = 0
+    for (let i = 0; i < stereo.blocks * FR; i++) {
+      maxDiff = Math.max(maxDiff, Math.abs(routed.sumL[i] - stereo.sumL[i]), Math.abs(routed.sumR[i] - stereo.sumR[i]))
+      rms += stereo.sumL[i] * stereo.sumL[i] + stereo.sumR[i] * stereo.sumR[i]
+    }
+    rms = Math.sqrt(rms / (stereo.blocks * FR))
+    assert(rms > 1e-2, `render too quiet for a parity check: rms ${rms.toExponential(1)}`)
+    assert(maxDiff < 1e-6, `groups+fx differs from stereo by ${maxDiff.toExponential(1)} (rms ${rms.toExponential(1)})`)
+
+    // negative control: the reserved T*10 layout scatters under the same routing
+    const scattered = render(reserved, 1 * 10 + 9, N)
+    const guitar = scattered.dry[0]
+    const guitarTotal = guitar.reduce((a, b) => a + b, 0)
+    assert(guitarTotal > 1e-3, `negative control silent: ${guitar}`)
+    assert(Math.max(...guitar) < 0.9 * guitarTotal, `negative control did not scatter: ${guitar.map(v => v.toExponential(1))}`)
+
+    return `bleed < 1e-4, parity ${maxDiff.toExponential(1)} @ rms ${rms.toExponential(1)}, T*10 scatters ${(100 * Math.max(...guitar) / guitarTotal).toFixed(0)}%`
   },
 
   leak (M) {
