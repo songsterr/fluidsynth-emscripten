@@ -93,9 +93,7 @@ fluid_channel_init(fluid_channel_t *chan)
 
     if(!chan->channel_type_app_set)
     {
-        i = chan->synth->per_track_audio
-            ? chan->channum % NUMBER_OF_RESERVED_CHANNELS_PER_TRACK : chan->channum;
-        chan->channel_type = (i == 9) ? CHANNEL_TYPE_DRUM : CHANNEL_TYPE_MELODIC;
+        chan->channel_type = (chan->channum == 9) ? CHANNEL_TYPE_DRUM : CHANNEL_TYPE_MELODIC;
     }
     prognum = 0;
     banknum = (chan->channel_type == CHANNEL_TYPE_DRUM) ? DRUM_INST_BANK : 0;

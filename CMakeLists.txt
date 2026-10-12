@@ -835,6 +835,7 @@ set(TEST_DLS "${FluidSynth_SOURCE_DIR}/sf2/VintageDreamsWaves-v2.dls")
 set(TEST_SOUNDFONT_UTF8_1 "${FluidSynth_SOURCE_DIR}/sf2/\\xE2\\x96\\xA0VintageDreamsWaves-v2\\xE2\\x96\\xA0.sf2")
 set(TEST_SOUNDFONT_UTF8_2 "${FluidSynth_SOURCE_DIR}/sf2/VìntàgèDrèàmsWàvès-v2.sf2")
 set(TEST_SOUNDFONT_SF3 "${FluidSynth_SOURCE_DIR}/sf2/VintageDreamsWaves-v2.sf3")
+set(TEST_LEGACY_LAYOUT_PCM "${FluidSynth_SOURCE_DIR}/test/fixtures/legacy-layout-stereo.f32")
 set(TEST_MIDI_UTF8 "${FluidSynth_SOURCE_DIR}/test/ⓉⒺⓈⓉ.mid")
 set(TEST_WAV_UTF8 "${FluidSynth_BINARY_DIR}/test/ⓉⒺⓈⓉ.wav")
 
